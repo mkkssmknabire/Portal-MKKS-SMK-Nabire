@@ -11,9 +11,10 @@
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f8fafc; color: #1e293b; scroll-behavior: smooth; }
         .hero-bg { background: linear-gradient(rgba(14, 165, 233, 0.9), rgba(14, 165, 233, 0.7)), url('https://iili.io/BvkKR2I.md.png'); background-size: contain; background-position: center; background-repeat: no-repeat; }
-        .nav-active { color: #0284c7; border-bottom: 2px solid #0284c7; }
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         .custom-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="pb-16 md:pb-0">
@@ -29,8 +30,8 @@
             <button onclick="nav('berita')" class="hover:text-sky-600 transition">Berita</button>
             <button onclick="nav('profil')" class="hover:text-sky-600 transition">Profil</button>
             <button onclick="nav('akademik')" class="hover:text-sky-600 transition">Akademik</button>
-            <button onclick="nav('daftar')" class="bg-sky-600 text-white px-5 py-2 rounded-lg hover:bg-sky-700 transition">Daftar Sekarang</button>
-            <button onclick="nav('login')" class="text-slate-400 hover:text-sky-600 text-lg"><i class="fas fa-user-circle"></i></button>
+            <button onclick="nav('daftar')" class="bg-sky-600 text-white px-5 py-2 rounded-lg hover:bg-sky-700 transition shadow-md">Daftar Sekarang</button>
+            <button onclick="nav('login')" class="text-slate-400 hover:text-sky-600 text-lg transition"><i class="fas fa-user-circle"></i></button>
         </div>
     </nav>
 
@@ -43,7 +44,7 @@
             <i class="fas fa-newspaper"></i><span class="text-[10px]">Berita</span>
         </button>
         <button onclick="nav('akademik')" class="text-slate-400 focus:text-sky-600 flex flex-col items-center gap-1">
-            <i class="fas fa-graduation-cap"></i><span class="text-[10px]">Info</span>
+            <i class="fas fa-map-marked-alt"></i><span class="text-[10px]">Lokasi</span>
         </button>
         <button onclick="nav('daftar')" class="text-slate-400 focus:text-sky-600 flex flex-col items-center gap-1">
             <i class="fas fa-edit"></i><span class="text-[10px]">Daftar</span>
@@ -56,26 +57,28 @@
     <!-- MAIN CONTENT -->
     <div id="content" class="md:pt-20 min-h-screen"></div>
 
-    <!-- NOTIFICATION SYSTEM -->
+    <!-- TOAST NOTIFICATION -->
     <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none"></div>
 
     <script>
-        // --- DATA & CONFIG ---
+        // --- DATA SEKOLAH DENGAN KOORDINAT GOOGLE MAPS ---
         const SCHOOLS = [
-            { id: "smkn1nabire", name: "SMKN 1 Nabire", address: "Kaliharapan (Jl. Ampera)", img: "https://iili.io/BiVnuUb.png", majors: ["Sistem Informatika, Jaringan & Aplikasi", "Teknik Komputer & Jaringan (TKJ)", "Multimedia", "Agribisnis Tanaman Pangan & Hortikultura (ATPH)", "Agribisnis Tanaman Perkebunan (ATP)", "Agribisnis Ternak Unggas (ATU)", "Keperawatan Hewan", "Agribisnis Pengolahan Hasil Pertanian (APHP)", "Agribisnis Perikanan Air Tawar (APAT)"] },
-            { id: "smkn1makimi", name: "SMKN 1 Makimi", address: "Legari (Jl. Marilephy)", img: "https://iili.io/BiF2Otn.md.jpg", majors: ["Teknik & Bisnis Sepeda Motor (TBSM)", "Teknik Komputer & Jaringan (TKJ)", "Agribisnis Ternak Unggas (ATU)"] },
-            { id: "smkn1wanggar", name: "SMKN 1 Wanggar", address: "Jl. Poros Jalur 1 Wanggar", img: "https://iili.io/Bsc69Fs.jpg", majors: ["Perhotelan (PHT)", "Teknik Komputer & Jaringan (TKJ)"] },
-            { id: "smkn2nabire", name: "SMKN 2 Nabire", address: "Wonorejo (Jl. Poros Wadio)", img: "https://iili.io/BiF2vMG.png", majors: ["Teknik Konstruksi Perumahan (TKP)", "Teknik Instalasi tenaga kelistrikan (TITL)", "Teknik Audio video (TAV)", "Teknik Bisnis Sepeda Motor (TBSM)", "Teknik kendaraan Ringan (TKR)", "Teknik komputer & Jaringan (TKJ)"] },
-            { id: "smkspetra", name: "SMKS Petra", address: "Siriwini (Jl. DS Yan Mamoribo)", img: "https://iili.io/BiF3dDF.md.png", majors: ["Teknik Komputer & Jaringan (TKJ)", "Akuntansi & Keuangan Lembaga (AKL)", "Otomatisasi & Tata Kelola Perkantoran (OTKP)"] },
-            { id: "smksyashaki", name: "SMKS Yashaki", address: "Kalibobo (Jl.Mandala)", img: "https://iili.io/BiF2mcQ.png", majors: ["Oktomasi & Tatakelola Perkantoran (OTKP)", "Teknik Komputer & Jaringan (TKJ)"] },
-            { id: "smkspongtiku", name: "SMKS Pongtiku", address: "Siriwini (Jl. Gagak)", img: "https://iili.io/BiF2IGj.png", majors: ["Teknik Jaringan Komputer & Telekomunikasi (TJKT)", "Teknik Pengelasan & Fabrikasi Logam (TPFL)", "Layanan Kesehatan (LK)"] },
-            { id: "smkskristenanakpanah", name: "SMKS Kristen Anak Panah", address: "Kalibobo (Jl. Christina Marta Tiahahu)", img: "https://iili.io/BiF2fvS.png", majors: ["Rekayasa Perangkat Lunak (RPL)", "Desain Komunikasi Visual (DKV)", "Perhotelan (Hospitality)"] },
-            { id: "smksanigou", name: "SMKS Anigou Kesehatan", address: "Kalibobo (Jl. Mandala)", img: "https://iili.io/BiVnT0u.md.png", majors: ["Keperawatan Medis", "Keperawatan Sosial", "Farmasi Klinis", "Kebidanan"] },
-            { id: "smksypknomensen", name: "SMKS YPK DR.Nomensen ST. Mambraku", address: "Kalibobo (Jl. Wambarek Putaran II)", img: "https://iili.io/BiF2qy7.md.jpg", majors: ["Teknik Geologi Pertambangan (GP)", "Teknik komputer Dan jaringan (TKJ)", "Teknik Energi Terbarukan"] },
-            { id: "smksasysyafi'iyah", name: "SMKS Asy Syafi’iyah", address: "Sp3 Wadio (Jl. Kakak Tua)", img: "https://iili.io/BiF2zCb.md.jpg", majors: ["Desain Pemodelan dan informasi bangunan (DPIB)", "Teknik Kendaraan Ringan Otomotif (TKR)"] },
-            { id: "smksalmadinah", name: "SMKS AL - Madinah", address: "Girimulyo (Jl.Ksatrian)", img: "https://iili.io/Bt0PNVe.md.jpg", majors: ["Teknik Jaringan Komputer & Telekomunikasi (TJK)"] },
-            { id: "smksbakidi", name: "SMKS Bakidi Yasebaper", address: "Kimi", img: "https://iili.io/Bt0PkKb.png", majors: ["Agribisnis Tanaman Pangan & Holtikultura"] },
-            { id: "smksyppkyoseph", name: "SMKS YPPK ST. Yoseph Calanz", address: "Karadiri", img: "https://iili.io/BiF2oZu.md.jpg", majors: ["Agribisnis Ternak Unggas (ATU)", "Agribisnis Pengolahan Hasil Pertanian (APHP)"] }
+            { id: "smkn1nabire", name: "SMKN 1 Nabire", address: "Kaliharapan (Jl. Ampera)", map: "https://maps.google.com/?q=SMKN+1+Nabire", img: "https://iili.io/BiVnuUb.png", majors: ["Sistem Informatika, Jaringan & Aplikasi", "Teknik Komputer & Jaringan (TKJ)", "Multimedia", "Agribisnis Tanaman Pangan & Hortikultura (ATPH)", "Agribisnis Tanaman Perkebunan (ATP)", "Agribisnis Ternak Unggas (ATU)", "Keperawatan Hewan", "Agribisnis Pengolahan Hasil Pertanian (APHP)", "Agribisnis Perikanan Air Tawar (APAT)"] },
+            { id: "smkn1makimi", name: "SMKN 1 Makimi", address: "Legari (Jl. Marilephy)", map: "https://maps.google.com/?q=SMKN+1+Makimi", img: "https://iili.io/BiF2Otn.md.jpg", majors: ["Teknik & Bisnis Sepeda Motor (TBSM)", "Teknik Komputer & Jaringan (TKJ)", "Agribisnis Ternak Unggas (ATU)"] },
+            { id: "smkn1tkimi", name: "SMKN 1 Teluk Kimi", address: "Samabusa (Jl.kimibay-Legare)", map: "https://maps.google.com/?q=SMKN+1+Teluk+Kimi", img: "https://iili.io/Bi3pgat.png", majors: ["Teknik Komputer & Jaringan (TKJ)"] },
+            { id: "smkn1wanggar", name: "SMKN 1 Wanggar", address: "Jl. Poros Jalur 1 Wanggar", map: "https://maps.google.com/?q=SMKN+1+Wanggar", img: "https://iili.io/Bsc69Fs.jpg", majors: ["Perhotelan (PHT)", "Teknik Komputer & Jaringan (TKJ)"] },
+            { id: "smkn2nabire", name: "SMKN 2 Nabire", address: "Wonorejo (Jl. Poros Wadio)", map: "https://maps.google.com/?q=SMKN+2+Nabire", img: "https://iili.io/BiF2vMG.png", majors: ["Teknik Konstruksi Perumahan (TKP)", "Teknik Instalasi tenaga kelistrikan (TITL)", "Teknik Audio video (TAV)", "Teknik Bisnis Sepeda Motor (TBSM)", "Teknik kendaraan Ringan (TKR)", "Teknik komputer & Jaringan (TKJ)"] },
+            { id: "smkspetra", name: "SMKS Petra", address: "Siriwini (Jl. DS Yan Mamoribo)", map: "https://maps.google.com/?q=SMK+Petra+Nabire", img: "https://iili.io/BiF3dDF.md.png", majors: ["Teknik Komputer & Jaringan (TKJ)", "Akuntansi & Keuangan Lembaga (AKL)", "Otomatisasi & Tata Kelola Perkantoran (OTKP)"] },
+            { id: "smksyashaki", name: "SMKS Yashaki", address: "Kalibobo (Jl.Mandala)", map: "https://maps.google.com/?q=SMK+Yashaki+Nabire", img: "https://iili.io/BiF2mcQ.png", majors: ["Oktomasi & Tatakelola Perkantoran (OTKP)", "Teknik Komputer & Jaringan (TKJ)"] },
+            { id: "smkspongtiku", name: "SMKS Pongtiku", address: "Siriwini (Jl. Gagak)", map: "https://maps.google.com/?q=SMK+Pongtiku+Nabire", img: "https://iili.io/BiF2IGj.png", majors: ["Teknik Jaringan Komputer & Telekomunikasi (TJKT)", "Teknik Pengelasan & Fabrikasi Logam (TPFL)", "Layanan Kesehatan (LK)"] },
+            { id: "smkskristenanakpanah", name: "SMKS Kristen Anak Panah", address: "Kalibobo (Jl. Christina Marta Tiahahu)", map: "https://maps.google.com/?q=SMK+Kristen+Anak+Panah+Nabire", img: "https://iili.io/BiF2fvS.png", majors: ["Rekayasa Perangkat Lunak (RPL)", "Desain Komunikasi Visual (DKV)", "Perhotelan (Hospitality)"] },
+            { id: "smksanigou", name: "SMKS Anigou Kesehatan", address: "Kalibobo (Jl. Mandala)", map: "https://maps.google.com/?q=SMK+Anigou+Nabire", img: "https://iili.io/BiVnT0u.md.png", majors: ["Keperawatan Medis", "Keperawatan Sosial", "Farmasi Klinis", "Kebidanan"] },
+            { id: "smksypknomensen", name: "SMKS YPK DR.Nomensen ST. Mambraku", address: "Kalibobo (Jl. Wambarek Putaran II)", map: "https://maps.google.com/?q=SMK+YPK+Nommensen+Nabire", img: "https://iili.io/BiF2qy7.md.jpg", majors: ["Teknik Geologi Pertambangan (GP)", "Teknik komputer Dan jaringan (TKJ)", "Teknik Energi Terbarukan"] },
+            { id: "smksasysyafi'iyah", name: "SMKS Asy Syafi’iyah", address: "Sp3 Wadio (Jl. Kakak Tua)", map: "https://maps.google.com/?q=SMK+Asy+Syafiiyah+Nabire", img: "https://iili.io/BiF2zCb.md.jpg", majors: ["Desain Pemodelan dan informasi bangunan (DPIB)", "Teknik Kendaraan Ringan Otomotif (TKR)"] },
+            { id: "smksalmadinah", name: "SMKS AL - Madinah", address: "Girimulyo (Jl.Ksatrian)", map: "https://maps.google.com/?q=SMK+Al-Madinah+Nabire", img: "https://iili.io/Bt0PNVe.md.jpg", majors: ["Teknik Jaringan Komputer & Telekomunikasi (TJK)"] },
+            { id: "smksmacida", name: "SMKS Macida Kesehatan", address: "Kalibobo (Jl. Martha Ch.Tiahahu)", map: "https://maps.google.com/?q=SMK+Macida+Nabire", img: "https://iili.io/BiF987t.jpg", majors: ["Farmasi Klinik & Komunikasi (FKK)", "Farmasi Industri(FI)", "Asisten Perawat (AP)", "Asisten Teknik Laboratorium Medik (ATLM)", "Analis Pengujian Laboratorium (APL)"] },
+            { id: "smksbakidi", name: "SMKS Bakidi Yasebaper", address: "Kimi", map: "https://maps.google.com/?q=SMK+Bakidi+Nabire", img: "https://iili.io/Bt0PkKb.png", majors: ["Agribisnis Tanaman Pangan & Holtikultura"] },
+            { id: "smksyppkyoseph", name: "SMKS YPPK ST. Yoseph Calanz", address: "Karadiri", map: "https://maps.google.com/?q=SMK+ST+Yoseph+Nabire", img: "https://iili.io/BiF2oZu.md.jpg", majors: ["Agribisnis Ternak Unggas (ATU)", "Agribisnis Pengolahan Hasil Pertanian (APHP)"] }
         ];
 
         let state = {
@@ -85,14 +88,15 @@
             news: JSON.parse(localStorage.getItem('news')) || [
                 { id: 1, title: "Pembukaan PPDB 2026/2027", author: "Master Admin", content: "Pendaftaran siswa baru SMK se-Kabupaten Nabire resmi dibuka mulai hari ini.", date: "2026-02-15" }
             ],
-            editData: null
+            editData: null,
+            selectedSchool: null
         };
 
-        // --- UTILS ---
+        // --- CORE FUNCTIONS ---
         function toast(msg, type = 'success') {
             const container = document.getElementById('toast-container');
             const el = document.createElement('div');
-            el.className = `p-4 rounded-xl shadow-xl text-white font-medium text-sm animate-bounce ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'} pointer-events-auto`;
+            el.className = `p-4 rounded-xl shadow-xl text-white font-medium text-sm animate-fade-in ${type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'} pointer-events-auto`;
             el.innerText = msg;
             container.appendChild(el);
             setTimeout(() => el.remove(), 3000);
@@ -110,60 +114,63 @@
             window.scrollTo(0,0);
         }
 
-        // --- VIEWS ---
         function render() {
             const container = document.getElementById('content');
             container.className = "animate-fade-in";
             
-            if (state.view === 'home') container.innerHTML = viewHome();
-            if (state.view === 'berita') container.innerHTML = viewBerita();
-            if (state.view === 'profil') container.innerHTML = viewProfil();
-            if (state.view === 'alur') container.innerHTML = viewAlur();
-            if (state.view === 'akademik') container.innerHTML = viewAkademik();
-            if (state.view === 'daftar') container.innerHTML = viewDaftar();
-            if (state.view === 'login') container.innerHTML = viewLogin();
-            if (state.view === 'admin') container.innerHTML = viewAdmin();
+            switch(state.view) {
+                case 'home': container.innerHTML = viewHome(); break;
+                case 'berita': container.innerHTML = viewBerita(); break;
+                case 'profil': container.innerHTML = viewProfil(); break;
+                case 'akademik': container.innerHTML = viewAkademik(); break;
+                case 'daftar': container.innerHTML = viewDaftar(); break;
+                case 'login': container.innerHTML = viewLogin(); break;
+                case 'admin': container.innerHTML = viewAdmin(); break;
+                default: container.innerHTML = viewHome();
+            }
         }
 
+        // --- VIEWS COMPONENTS ---
         function viewHome() {
             return `
                 <section class="hero-bg h-[500px] flex flex-col items-center justify-center text-center px-6">
-                    <img src="https://iili.io/BvkKR2I.md.png" class="h-32 mb-6 drop-shadow-lg" alt="Logo">
-                    <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-2 drop-shadow-md">MKKS SMK NABIRE</h2>
+                    <img src="https://iili.io/BvkKR2I.md.png" class="h-32 mb-6 drop-shadow-xl animate-bounce" style="animation-duration: 3s" alt="Logo">
+                    <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-2 drop-shadow-md tracking-tight">MKKS SMK NABIRE</h2>
                     <p class="text-xl md:text-2xl text-white font-light drop-shadow-md italic">"SMK Bisa, Siap Kerja, Siap Wirausaha"</p>
                 </section>
 
                 <div class="max-w-6xl mx-auto py-16 px-6 grid md:grid-cols-2 gap-12 items-center">
                     <div>
                         <h3 class="text-2xl font-bold text-sky-900 mb-4">Sambutan Ketua MKKS SMK Nabire</h3>
-                        <p class="italic text-slate-600 mb-4 leading-relaxed">"Assalamu’alaikum Wr. Wb. Shalom, Om Swastiastu, Namo Budaya, Salam Kebajikan. Selamat Sejahtera bagi kita semua."</p>
-                        <p class="text-slate-700 leading-relaxed">Selamat datang di portal informasi PPDB Terpadu SMK Kabupaten Nabire. Portal ini kami hadirkan untuk memudahkan calon siswa dalam memilih pendidikan vokasi yang tepat untuk masa depan Gemilang.</p>
+                        <p class="italic text-slate-600 mb-4 leading-relaxed border-l-4 border-sky-400 pl-4">"Assalamu’alaikum Wr. Wb. Shalom, Om Swastiastu, Namo Budaya, Salam Kebajikan. Selamat Sejahtera bagi kita semua."</p>
+                        <p class="text-slate-700 leading-relaxed mb-6">Selamat datang di portal informasi PPDB Terpadu SMK Kabupaten Nabire. Portal ini kami hadirkan sebagai wujud transparansi dan kemudahan layanan pendidikan vokasi di tanah Papua Tengah.</p>
                         
-                        <div class="mt-8 space-y-4">
-                            <div class="p-4 bg-sky-50 rounded-xl border border-sky-100">
+                        <div class="grid gap-4">
+                            <div class="p-4 bg-sky-50 rounded-xl border border-sky-100 shadow-sm">
                                 <h4 class="font-bold text-sky-800"><i class="fas fa-eye mr-2"></i> Visi</h4>
-                                <p class="text-sm text-slate-600">Menjadi pusat koordinasi SMK yang unggul, inovatif, dan berstandar industri di Papua Tengah.</p>
+                                <p class="text-xs text-slate-600">Menjadi pusat koordinasi SMK yang unggul, inovatif, dan berstandar industri.</p>
                             </div>
-                            <div class="p-4 bg-white rounded-xl border border-slate-200">
+                            <div class="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
                                 <h4 class="font-bold text-slate-800"><i class="fas fa-bullseye mr-2"></i> Misi</h4>
-                                <p class="text-sm text-slate-600">Meningkatkan kualitas lulusan SMK, membangun jejaring kerja, dan menyeragamkan standar pendaftaran.</p>
+                                <p class="text-xs text-slate-600">Meningkatkan kualitas lulusan SMK dan memperkuat jejaring kerja antar lembaga pendidikan.</p>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-3xl p-8 custom-shadow border">
-                        <h3 class="text-xl font-bold mb-6">Hubungi Kami</h3>
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center"><i class="fas fa-phone"></i></div>
-                                <div><p class="text-xs text-slate-400">Telepon</p><p class="font-medium">+62 812-4567-8901</p></div>
+                    <div class="bg-white rounded-3xl p-8 custom-shadow border relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 text-8xl transform translate-x-10 -translate-y-10 rotate-12"><i class="fas fa-address-book"></i></div>
+                        <h3 class="text-xl font-bold mb-6 text-sky-900">Hubungi Kami</h3>
+                        <div class="space-y-5">
+                            <div class="flex items-center gap-4 group">
+                                <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all duration-300"><i class="fas fa-phone"></i></div>
+                                <div><p class="text-[10px] font-bold text-slate-400 uppercase">Telepon</p><p class="font-medium text-slate-700">+62 812-4567-8901</p></div>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center"><i class="fas fa-envelope"></i></div>
-                                <div><p class="text-xs text-slate-400">Email</p><p class="font-medium">admin@mkkssmknabire.or.id</p></div>
+                            <div class="flex items-center gap-4 group">
+                                <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all duration-300"><i class="fas fa-envelope"></i></div>
+                                <div><p class="text-[10px] font-bold text-slate-400 uppercase">Email Resmi</p><p class="font-medium text-slate-700">admin@mkkssmknabire.or.id</p></div>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center"><i class="fab fa-instagram"></i></div>
-                                <div><p class="text-xs text-slate-400">Instagram</p><p class="font-medium">@mkks_smk_nabire</p></div>
+                            <div class="flex items-center gap-4 group">
+                                <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all duration-300"><i class="fab fa-instagram"></i></div>
+                                <div><p class="text-[10px] font-bold text-slate-400 uppercase">Media Sosial</p><p class="font-medium text-slate-700">@mkks_smk_nabire</p></div>
                             </div>
                         </div>
                     </div>
@@ -174,49 +181,68 @@
         function viewBerita() {
             return `
                 <div class="max-w-4xl mx-auto py-12 px-6">
-                    <h2 class="text-3xl font-bold text-sky-900 mb-8 border-l-4 border-sky-600 pl-4">Berita & Pengumuman</h2>
+                    <h2 class="text-3xl font-bold text-sky-900 mb-8 flex items-center gap-3">
+                        <span class="w-1.5 h-8 bg-sky-600 rounded-full"></span>
+                        Berita & Pengumuman
+                    </h2>
                     <div class="grid gap-6">
-                        ${state.news.map(n => `
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition group">
+                        ${state.news.length ? state.news.map(n => `
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-sky-200 transition-all duration-300 group">
                                 <div class="flex justify-between items-start mb-4">
-                                    <span class="text-[10px] font-bold text-sky-600 uppercase tracking-widest">${n.author}</span>
-                                    <span class="text-xs text-slate-400">${n.date}</span>
+                                    <span class="text-[10px] font-black text-sky-600 uppercase tracking-tighter bg-sky-50 px-2 py-1 rounded">${n.author}</span>
+                                    <span class="text-xs text-slate-400 font-medium">${n.date}</span>
                                 </div>
-                                <h3 class="text-xl font-bold mb-2 group-hover:text-sky-600 transition">${n.title}</h3>
-                                <p class="text-slate-600 leading-relaxed">${n.content}</p>
+                                <h3 class="text-xl font-bold mb-3 group-hover:text-sky-600 transition">${n.title}</h3>
+                                <p class="text-slate-600 leading-relaxed text-sm">${n.content}</p>
                             </div>
-                        `).join('')}
+                        `).join('') : '<p class="text-center text-slate-400 py-20 italic">Belum ada berita terbaru.</p>'}
                     </div>
                 </div>
             `;
         }
 
         function viewProfil() {
+            const filteredAnggota = SCHOOLS.filter(s => s.id !== 'smkn1tkimi' && s.id !== 'smksmacida');
+
             return `
                 <div class="max-w-6xl mx-auto py-12 px-6">
-                    <h2 class="text-3xl font-bold text-center text-sky-900 mb-12 uppercase">Pimpinan & Anggota MKKS</h2>
+                    <div class="text-center mb-16">
+                        <h2 class="text-3xl font-bold text-sky-900 uppercase tracking-widest">Pimpinan MKKS</h2>
+                        <p class="text-slate-400 text-sm mt-2">Masa Bakti Pengurus MKKS SMK Kabupaten Nabire</p>
+                    </div>
                     
-                    <div class="grid md:grid-cols-2 gap-8 mb-16">
-                        <div class="bg-white p-6 rounded-3xl text-center border custom-shadow">
-                            <img src="https://iili.io/Bi3pgat.png" class="w-40 h-40 rounded-full mx-auto mb-4 border-4 border-sky-100 object-cover">
-                            <h4 class="text-xl font-bold">Kepala Sekolah SMKN 1 Teluk Kimi</h4>
-                            <p class="text-sky-600 font-medium">Ketua MKKS SMK Nabire</p>
+                    <div class="grid md:grid-cols-2 gap-8 mb-20">
+                        <div class="bg-white p-8 rounded-[40px] text-center border-2 border-sky-50 custom-shadow hover:-translate-y-2 transition-transform duration-300">
+                            <div class="relative inline-block mb-6">
+                                <img src="https://iili.io/Bi3pgat.png" class="w-44 h-44 rounded-3xl mx-auto border-4 border-white shadow-xl object-cover">
+                                <div class="absolute -bottom-3 -right-3 w-12 h-12 bg-sky-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><i class="fas fa-crown text-sm"></i></div>
+                            </div>
+                            <h4 class="text-xl font-bold text-slate-800">Kepala Sekolah SMKN 1 Teluk Kimi</h4>
+                            <p class="text-sky-600 font-bold uppercase text-xs tracking-widest mt-1">Ketua MKKS SMK Nabire</p>
                         </div>
-                        <div class="bg-white p-6 rounded-3xl text-center border custom-shadow">
-                            <img src="https://iili.io/BiF987t.jpg" class="w-40 h-40 rounded-full mx-auto mb-4 border-4 border-sky-100 object-cover">
-                            <h4 class="text-xl font-bold">Kepala Sekolah SMKS Macida Kesehatan</h4>
-                            <p class="text-sky-600 font-medium">Sekretaris MKKS SMK Nabire</p>
+                        <div class="bg-white p-8 rounded-[40px] text-center border-2 border-slate-50 custom-shadow hover:-translate-y-2 transition-transform duration-300">
+                            <div class="relative inline-block mb-6">
+                                <img src="https://iili.io/BiF987t.jpg" class="w-44 h-44 rounded-3xl mx-auto border-4 border-white shadow-xl object-cover">
+                                <div class="absolute -bottom-3 -right-3 w-12 h-12 bg-slate-700 rounded-2xl flex items-center justify-center text-white shadow-lg"><i class="fas fa-pen-fancy text-sm"></i></div>
+                            </div>
+                            <h4 class="text-xl font-bold text-slate-800">Kepala Sekolah SMKS Macida Kesehatan</h4>
+                            <p class="text-sky-600 font-bold uppercase text-xs tracking-widest mt-1">Sekretaris MKKS SMK Nabire</p>
                         </div>
                     </div>
 
-                    <h3 class="text-2xl font-bold text-slate-800 mb-8 flex items-center"><i class="fas fa-users mr-3 text-sky-600"></i> Seluruh Anggota</h3>
+                    <div class="flex items-center gap-4 mb-10">
+                        <h3 class="text-2xl font-bold text-slate-800">Seluruh Anggota</h3>
+                        <div class="h-1 flex-grow bg-slate-100 rounded-full"></div>
+                    </div>
+
                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        ${SCHOOLS.map(s => `
-                            <div class="text-center bg-white p-4 rounded-2xl border hover:border-sky-300 transition group">
-                                <div class="overflow-hidden rounded-xl mb-3 aspect-square bg-slate-100">
-                                    <img src="${s.img}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        ${filteredAnggota.map(s => `
+                            <div class="text-center bg-white p-4 rounded-3xl border border-slate-100 hover:border-sky-300 hover:shadow-lg transition-all group">
+                                <div class="overflow-hidden rounded-2xl mb-4 aspect-square bg-slate-50 shadow-inner">
+                                    <img src="${s.img}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700 grayscale-[30%] group-hover:grayscale-0">
                                 </div>
-                                <p class="text-xs font-bold text-slate-700 leading-tight">${s.name}</p>
+                                <p class="text-[11px] font-bold text-slate-700 leading-tight group-hover:text-sky-700 transition">${s.name}</p>
+                                <p class="text-[9px] text-slate-400 mt-1 uppercase font-medium">Anggota MKKS</p>
                             </div>
                         `).join('')}
                     </div>
@@ -227,26 +253,43 @@
         function viewAkademik() {
             return `
                 <div class="max-w-6xl mx-auto py-12 px-6">
-                    <h2 class="text-3xl font-bold text-sky-900 mb-2">Informasi Sekolah</h2>
-                    <p class="text-slate-500 mb-10">Berikut detail alamat dan jurusan masing-masing SMK di Nabire untuk Tahun Ajaran 2026/2027.</p>
+                    <h2 class="text-3xl font-bold text-sky-900 mb-2">Informasi Sekolah & Jurusan</h2>
+                    <p class="text-slate-500 mb-12">Panduan lengkap konsentrasi keahlian pada seluruh SMK di Kabupaten Nabire.</p>
                     
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         ${SCHOOLS.map(s => `
-                            <div class="bg-white rounded-3xl overflow-hidden border custom-shadow flex flex-col">
-                                <div class="h-40 bg-slate-100 relative">
-                      
-                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                                        <h4 class="text-white font-bold text-sm">${s.name}</h4>
+                            <div class="bg-white rounded-[2rem] overflow-hidden border border-slate-100 custom-shadow flex flex-col group">
+                                <div class="h-44 relative overflow-hidden">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6">
+                                        <div class="w-full flex justify-between items-end">
+                                            <div>
+                                                <h4 class="text-white font-bold text-base leading-tight">${s.name}</h4>
+                                                <p class="text-sky-300 text-[10px] font-medium"><i class="fas fa-map-marker-alt mr-1"></i> ${s.address}</p>
+                                            </div>
+                                            <a href="${s.map}" target="_blank" class="w-10 h-10 bg-white/20 hover:bg-sky-500 backdrop-blur-md rounded-xl flex items-center justify-center text-white transition-all shadow-lg border border-white/30" title="Buka di Google Maps">
+                                                <i class="fas fa-directions"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="p-5 flex-grow">
-                                    <p class="text-[10px] text-slate-400 mb-3"><i class="fas fa-map-marker-alt mr-1"></i> ${s.address}</p>
-                                    <h5 class="text-xs font-bold uppercase tracking-widest text-sky-600 mb-3">Pilihan Jurusan:</h5>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        ${s.majors.map(m => `<span class="bg-sky-50 text-sky-700 text-[9px] px-2 py-1 rounded-md font-medium border border-sky-100">${m}</span>`).join('')}
+                                <div class="p-6 flex-grow">
+                                    <h5 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 border-b pb-2">Kompetensi Keahlian</h5>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${s.majors.map(m => `
+                                            <span class="bg-slate-50 text-slate-600 text-[10px] px-3 py-1.5 rounded-lg font-semibold border border-slate-200">
+                                                ${m}
+                                            </span>
+                                        `).join('')}
                                     </div>
                                 </div>
-                                <button onclick="selectSchoolForDaftar('${s.name}')" class="m-5 mt-0 py-2 bg-slate-50 hover:bg-sky-600 hover:text-white rounded-xl text-xs font-bold transition">Pilih Sekolah</button>
+                                <div class="p-6 pt-0 space-y-3">
+                                    <button onclick="selectSchoolForDaftar('${s.name}')" class="w-full py-3 bg-sky-600 text-white rounded-2xl text-xs font-bold shadow-lg shadow-sky-100 hover:bg-sky-700 transition">
+                                        Daftar Sekarang
+                                    </button>
+                                    <a href="${s.map}" target="_blank" class="block w-full py-2.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-xl text-[10px] font-bold text-center hover:bg-slate-100 transition uppercase tracking-widest">
+                                        <i class="fas fa-map-marked-alt mr-2"></i> Buka Lokasi (Maps)
+                                    </a>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -258,87 +301,75 @@
             const editMode = !!state.editData;
             return `
                 <div class="max-w-3xl mx-auto py-12 px-6">
-                    <div class="bg-white rounded-3xl p-8 border custom-shadow">
-                        <div class="text-center mb-8">
-                            <h2 class="text-2xl font-bold text-sky-900">${editMode ? 'Edit Data Pendaftar' : 'Formulir Pendaftaran Siswa Baru'}</h2>
-                            <p class="text-sm text-slate-500">Tahun Ajaran 2026/2027</p>
+                    <div class="bg-white rounded-[2.5rem] p-10 border border-slate-100 custom-shadow">
+                        <div class="text-center mb-10">
+                            <h2 class="text-2xl font-bold text-sky-900">${editMode ? 'Edit Data Pendaftar' : 'Formulir Pendaftaran Siswa'}</h2>
+                            <p class="text-sm text-slate-400 mt-1 uppercase tracking-widest font-medium">Tahun Ajaran 2026/2027</p>
                         </div>
                         
                         <form onsubmit="handleDaftar(event)" class="space-y-6">
                             <div class="grid md:grid-cols-2 gap-6">
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-slate-500 ml-1">NISN (10 Digit)</label>
-                                    <input type="number" name="nisn" value="${state.editData?.nisn || ''}" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Nomor NISN</label>
+                                    <input type="number" name="nisn" value="${state.editData?.nisn || ''}" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                                 </div>
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-slate-500 ml-1">NIK (16 Digit)</label>
-                                    <input type="number" name="nik" value="${state.editData?.nik || ''}" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Nomor NIK</label>
+                                    <input type="number" name="nik" value="${state.editData?.nik || ''}" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                                 </div>
                             </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold uppercase text-slate-500 ml-1">Nama Lengkap</label>
-                                <input type="text" name="nama" value="${state.editData?.nama || ''}" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                            
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Nama Lengkap Siswa</label>
+                                <input type="text" name="nama" value="${state.editData?.nama || ''}" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                             </div>
+
                             <div class="grid md:grid-cols-2 gap-6">
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-slate-500 ml-1">Tempat & Tgl Lahir</label>
-                                    <input type="text" name="ttl" value="${state.editData?.ttl || ''}" placeholder="Nabire, 01-01-2010" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Tempat, Tanggal Lahir</label>
+                                    <input type="text" name="ttl" value="${state.editData?.ttl || ''}" placeholder="Contoh: Nabire, 12-05-2010" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                                 </div>
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-slate-500 ml-1">Jenis Kelamin</label>
-                                    <select name="jk" class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Jenis Kelamin</label>
+                                    <select name="jk" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                                         <option value="Laki-laki" ${state.editData?.jk === 'Laki-laki' ? 'selected' : ''}>Laki-laki</option>
                                         <option value="Perempuan" ${state.editData?.jk === 'Perempuan' ? 'selected' : ''}>Perempuan</option>
                                     </select>
                                 </div>
                             </div>
+
                             <div class="grid md:grid-cols-2 gap-6">
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-slate-500 ml-1">Agama</label>
-                                    <input type="text" name="agama" value="${state.editData?.agama || ''}" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Nomor HP/WA</label>
+                                    <input type="tel" name="telepon" value="${state.editData?.telepon || ''}" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                                 </div>
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-slate-500 ml-1">No. HP / WA</label>
-                                    <input type="tel" name="telepon" value="${state.editData?.telepon || ''}" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-slate-400 ml-1">Asal Sekolah</label>
+                                    <input type="text" name="asalSekolah" value="${state.editData?.asalSekolah || ''}" placeholder="SMP/MTs Asal" required class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                                 </div>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold uppercase text-slate-500 ml-1">Alamat Lengkap</label>
-                                <textarea name="alamat" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition h-20">${state.editData?.alamat || ''}</textarea>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold uppercase text-slate-500 ml-1">Asal Sekolah (SMP/MTs)</label>
-                                <input type="text" name="asalSekolah" value="${state.editData?.asalSekolah || ''}" required class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
                             </div>
 
-                            <div class="grid md:grid-cols-2 gap-6 p-4 bg-sky-50 rounded-2xl border border-sky-100">
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-sky-800 ml-1">Pilih SMK Tujuan</label>
-                                    <select id="smk-select" name="smk" onchange="updateMajorsDropdown(this.value)" required class="w-full p-3 bg-white border rounded-xl outline-none focus:border-sky-500 transition">
-                                        <option value="">-- Pilih Sekolah --</option>
+                            <div class="p-6 bg-sky-50 rounded-3xl border border-sky-100 space-y-5">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-sky-700 ml-1">Pilihan SMK</label>
+                                    <select id="smk-select" name="smk" onchange="updateMajorsDropdown(this.value)" required class="w-full p-4 bg-white border border-sky-100 rounded-2xl outline-none focus:border-sky-500 transition">
+                                        <option value="">-- Pilih Sekolah Tujuan --</option>
                                         ${SCHOOLS.map(s => `<option value="${s.name}" ${(state.editData?.smk || state.selectedSchool) === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
                                     </select>
                                 </div>
-                                <div class="space-y-1">
-                                    <label class="text-xs font-bold uppercase text-sky-800 ml-1">Pilih Jurusan</label>
-                                    <select id="major-select" name="jurusan" required class="w-full p-3 bg-white border rounded-xl outline-none focus:border-sky-500 transition">
+                                <div class="space-y-2">
+                                    <label class="text-[11px] font-black uppercase text-sky-700 ml-1">Pilihan Jurusan</label>
+                                    <select id="major-select" name="jurusan" required class="w-full p-4 bg-white border border-sky-100 rounded-2xl outline-none focus:border-sky-500 transition">
                                         <option value="">-- Pilih Jurusan --</option>
                                     </select>
                                 </div>
                             </div>
 
-                            <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                                <h4 class="text-[10px] font-bold text-amber-800 uppercase mb-2 italic">Syarat Verifikasi Berkas:</h4>
-                                <ul class="text-[10px] text-amber-700 space-y-1 list-disc ml-4">
-                                    <li>Membawa FC Ijazah / SKL Terlegalisir</li>
-                                    <li>Membawa FC Kartu Keluarga & Akta Kelahiran</li>
-                                    <li>Pas Foto 3x4 (4 Lembar)</li>
-                                </ul>
-                            </div>
-
-                            <div class="flex gap-4">
+                            <div class="flex gap-4 pt-4">
                                 ${editMode ? `<button type="button" onclick="cancelEdit()" class="flex-1 bg-slate-200 text-slate-700 py-4 rounded-2xl font-bold hover:bg-slate-300 transition">Batal</button>` : ''}
-                                <button type="submit" class="flex-[2] bg-sky-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-sky-700 transition uppercase tracking-widest">${editMode ? 'Simpan Perubahan' : 'Kirim Pendaftaran'}</button>
+                                <button type="submit" class="flex-[2] bg-sky-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-sky-100 hover:bg-sky-700 transition uppercase tracking-widest">
+                                    ${editMode ? 'Simpan Perubahan' : 'Kirim Pendaftaran'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -347,33 +378,30 @@
             setTimeout(() => {
                 const initSmk = state.editData?.smk || state.selectedSchool;
                 if(initSmk) updateMajorsDropdown(initSmk, state.editData?.jurusan);
-            }, 100);
+            }, 50);
         }
 
         function viewLogin() {
-            if (state.user) { nav('admin'); return ''; }
             return `
-                <div class="max-w-md mx-auto py-24 px-6 animate-fade-in">
-                    <div class="bg-white p-10 rounded-3xl border custom-shadow text-center">
-                        <div class="w-16 h-16 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">
-                            <i class="fas fa-lock"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold mb-2">Panel Administrasi</h2>
-                        <p class="text-xs text-slate-400 mb-8 uppercase tracking-widest">Login Khusus Petugas & MKKS</p>
+                <div class="max-w-md mx-auto py-24 px-6">
+                    <div class="bg-white p-10 rounded-[3rem] border border-slate-100 custom-shadow text-center">
+                        <div class="w-20 h-20 bg-sky-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 text-3xl shadow-xl shadow-sky-200 rotate-6"><i class="fas fa-shield-alt"></i></div>
+                        <h2 class="text-2xl font-bold text-slate-800">Panel Administrator</h2>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 mb-10">Otentikasi Petugas PPDB</p>
                         
-                        <form onsubmit="handleLogin(event)" class="space-y-4 text-left">
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Pilih Akun</label>
-                                <select id="l-user" class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
-                                    <option value="mkkssmknabire">Master Admin (MKKS)</option>
+                        <form onsubmit="handleLogin(event)" class="space-y-5 text-left">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Identitas Akun</label>
+                                <select id="l-user" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition font-medium">
+                                    <option value="mkkssmknabire">Master MKKS Nabire</option>
                                     ${SCHOOLS.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
                                 </select>
                             </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Kata Sandi</label>
-                                <input type="password" id="l-pass" placeholder="••••••••" class="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:border-sky-500 transition">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Kata Sandi</label>
+                                <input type="password" id="l-pass" placeholder="Masukkan Password" class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-sky-500 focus:bg-white transition">
                             </div>
-                            <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition shadow-lg">MASUK PANEL</button>
+                            <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition shadow-xl mt-4 uppercase tracking-wider text-xs">Akses Dashboard</button>
                         </form>
                     </div>
                 </div>
@@ -381,14 +409,10 @@
         }
 
         function viewAdmin() {
-            if (!state.user) { nav('login'); return ''; }
+            if (!state.user) return viewLogin();
             
             const isMaster = state.user.role === 'master';
-            let data = state.registrations;
-            
-            if (!isMaster) {
-                data = state.registrations.filter(r => r.smk === state.user.name);
-            }
+            let data = isMaster ? state.registrations : state.registrations.filter(r => r.smk === state.user.name);
 
             const stats = {
                 total: data.length,
@@ -398,112 +422,84 @@
 
             return `
                 <div class="max-w-6xl mx-auto py-10 px-6">
-                    <div class="flex gap-4 mt-10 md:mt-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
                         <div>
-                            <h2 class="text-2xl font-bold text-slate-800">${isMaster ? 'Master Dashboard' : state.user.name}</h2>
-                            <p class="text-xs text-sky-600 font-bold uppercase tracking-widest">Portal Manajemen Data Siswa</p>
+                            <h2 class="text-2xl font-bold text-slate-800">${state.user.name}</h2>
+                            <span class="text-[10px] font-black bg-sky-100 text-sky-700 px-3 py-1 rounded-full uppercase tracking-widest">Dashboard Verifikator</span>
                         </div>
-                        <div class="flex gap-4 mt-6 md:mt-0">
-                            <button onclick="exportExcel()" class="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-200 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2"><i class="fas fa-file-excel"></i> Download Excel</button>
-                            <button onclick="logout()" class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl text-xs font-bold border border-rose-100 hover:bg-rose-200 hover:text-white transition">Keluar</button>
+                        <div class="flex gap-3">
+                            <button onclick="exportExcel()" class="bg-emerald-50 text-emerald-700 px-5 py-2.5 rounded-2xl text-xs font-bold border border-emerald-100 hover:bg-emerald-600 hover:text-white transition flex items-center gap-2">
+                                <i class="fas fa-file-excel"></i> Ekspor Excel
+                            </button>
+                            <button onclick="logout()" class="bg-rose-50 text-rose-700 px-5 py-2.5 rounded-2xl text-xs font-bold border border-rose-100 hover:bg-rose-600 hover:text-white transition">
+                                Log Out
+                            </button>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                        <div class="bg-white p-6 rounded-3xl border custom-shadow">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Total Pendaftar</p>
+                        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 custom-shadow">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1">Total Masuk</p>
                             <h4 class="text-4xl font-black text-slate-800">${stats.total}</h4>
                         </div>
-                        <div class="bg-emerald-50 p-6 rounded-3xl border border-emerald-100">
-                            <p class="text-[10px] font-bold text-emerald-600 uppercase mb-1">Lolos Verifikasi</p>
+                        <div class="bg-emerald-50 p-8 rounded-[2.5rem] border border-emerald-100">
+                            <p class="text-[10px] font-black text-emerald-600 uppercase tracking-tighter mb-1">Terverifikasi</p>
                             <h4 class="text-4xl font-black text-emerald-700">${stats.lolos}</h4>
                         </div>
-                        <div class="bg-rose-50 p-6 rounded-3xl border border-rose-100">
-                            <p class="text-[10px] font-bold text-rose-600 uppercase mb-1">Tidak Lolos</p>
+                        <div class="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-100">
+                            <p class="text-[10px] font-black text-rose-600 uppercase tracking-tighter mb-1">Ditolak</p>
                             <h4 class="text-4xl font-black text-rose-700">${stats.tidak}</h4>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-3xl border custom-shadow overflow-hidden mb-12">
-                        <div class="p-6 border-b bg-slate-50 flex justify-between items-center">
-                            <h3 class="font-bold text-slate-700">Daftar Pendaftar ${isMaster ? '(Seluruh SMK)' : ''}</h3>
-                            <div class="relative">
-                                <i class="fas fa-search absolute left-3 top-2.5 text-slate-300 text-sm"></i>
-                                <input type="text" placeholder="Cari Nama/NIK..." onkeyup="searchTable(this.value)" class="pl-10 pr-4 py-2 bg-white border rounded-xl text-sm outline-none focus:border-sky-500">
+                    <div class="bg-white rounded-[2rem] border border-slate-100 custom-shadow overflow-hidden mb-12">
+                        <div class="p-6 border-b bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <h3 class="font-bold text-slate-700">Daftar Pendaftaran Baru</h3>
+                            <div class="relative w-full md:w-64">
+                                <i class="fas fa-search absolute left-4 top-3.5 text-slate-300 text-sm"></i>
+                                <input type="text" placeholder="Cari Nama/NIK..." onkeyup="searchTable(this.value)" class="w-full pl-12 pr-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm outline-none focus:border-sky-500">
                             </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table id="data-table" class="w-full text-sm">
                                 <thead class="bg-slate-50 border-b">
                                     <tr>
-                                        <th class="p-4 text-left font-bold text-slate-400 uppercase text-[10px]">Siswa / Identitas</th>
-                                        <th class="p-4 text-left font-bold text-slate-400 uppercase text-[10px]">Tujuan / Jurusan</th>
-                                        <th class="p-4 text-center font-bold text-slate-400 uppercase text-[10px]">Status</th>
-                                        <th class="p-4 text-center font-bold text-slate-400 uppercase text-[10px]">Aksi</th>
+                                        <th class="p-5 text-left font-black text-slate-400 uppercase text-[10px]">Pendaftar</th>
+                                        <th class="p-5 text-left font-black text-slate-400 uppercase text-[10px]">Sekolah / Jurusan</th>
+                                        <th class="p-5 text-center font-black text-slate-400 uppercase text-[10px]">Status</th>
+                                        <th class="p-5 text-center font-black text-slate-400 uppercase text-[10px]">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y">
                                     ${data.map(r => `
-                                        <tr class="hover:bg-slate-50 transition group">
-                                            <td class="p-4">
-                                                <div class="font-bold text-slate-800">${r.nama}</div>
-                                                <div class="text-[9px] text-slate-400">NISN: ${r.nisn} | NIK: ${r.nik}</div>
-                                                <div class="text-[9px] text-slate-400"><i class="fas fa-phone mr-1"></i> ${r.telepon}</div>
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="p-5">
+                                                <div class="font-bold text-slate-800 leading-tight">${r.nama}</div>
+                                                <div class="text-[10px] text-slate-400 font-medium">NIK: ${r.nik} | NISN: ${r.nisn}</div>
                                             </td>
-                                            <td class="p-4">
-                                                <div class="font-medium text-sky-800">${r.smk}</div>
-                                                <div class="text-[10px] text-slate-500">${r.jurusan}</div>
+                                            <td class="p-5">
+                                                <div class="font-semibold text-sky-800">${r.smk}</div>
+                                                <div class="text-[10px] text-slate-500 font-medium">${r.jurusan}</div>
                                             </td>
-                                            <td class="p-4 text-center">
-                                                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${r.status === 'Lolos' ? 'bg-emerald-100 text-emerald-700' : (r.status === 'Tidak Lolos' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500')}">
+                                            <td class="p-5 text-center">
+                                                <span class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${r.status === 'Lolos' ? 'bg-emerald-100 text-emerald-700' : (r.status === 'Tidak Lolos' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-400')}">
                                                     ${r.status}
                                                 </span>
                                             </td>
-                                            <td class="p-4">
+                                            <td class="p-5">
                                                 <div class="flex justify-center gap-2">
                                                     ${!isMaster ? `
-                                                        <button onclick="updateStatus('${r.id}', 'Lolos')" class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 shadow-sm transition"><i class="fas fa-check text-xs"></i></button>
-                                                        <button onclick="updateStatus('${r.id}', 'Tidak Lolos')" class="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center hover:scale-110 shadow-sm transition"><i class="fas fa-times text-xs"></i></button>
+                                                        <button onclick="updateStatus('${r.id}', 'Lolos')" class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center hover:scale-110 shadow-lg shadow-emerald-100 transition"><i class="fas fa-check text-xs"></i></button>
+                                                        <button onclick="updateStatus('${r.id}', 'Tidak Lolos')" class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center hover:scale-110 shadow-lg shadow-rose-100 transition"><i class="fas fa-times text-xs"></i></button>
                                                     ` : ''}
-                                                    <button onclick="triggerEdit('${r.id}')" class="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center hover:scale-110 shadow-sm transition"><i class="fas fa-edit text-xs"></i></button>
-                                                    <button onclick="deletePendaftar('${r.id}')" class="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center hover:scale-110 shadow-sm transition"><i class="fas fa-trash text-xs"></i></button>
+                                                    <button onclick="triggerEdit('${r.id}')" class="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center hover:scale-110 shadow-lg shadow-sky-100 transition"><i class="fas fa-edit text-xs"></i></button>
+                                                    <button onclick="deletePendaftar('${r.id}')" class="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center hover:scale-110 shadow-lg shadow-slate-100 transition"><i class="fas fa-trash-alt text-xs"></i></button>
                                                 </div>
                                             </td>
                                         </tr>
                                     `).reverse().join('')}
                                 </tbody>
                             </table>
-                            ${data.length === 0 ? `<div class="p-20 text-center text-slate-400 italic">Belum ada data pendaftar masuk.</div>` : ''}
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-3xl border custom-shadow overflow-hidden">
-                        <div class="p-6 border-b bg-slate-50 flex justify-between items-center">
-                            <h3 class="font-bold text-slate-700">Manajemen Berita & Pengumuman</h3>
-                        </div>
-                        <div class="p-6">
-                            <form onsubmit="handlePostNews(event)" class="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                                <h4 class="font-bold text-sm mb-4">Buat Berita Baru</h4>
-                                <div class="grid gap-4">
-                                    <input type="text" id="news-title" placeholder="Judul Berita" required class="p-3 bg-white border rounded-xl outline-none focus:border-sky-500 text-sm">
-                                    <textarea id="news-content" placeholder="Isi berita atau pengumuman penting..." required class="p-3 bg-white border rounded-xl outline-none focus:border-sky-500 text-sm h-24"></textarea>
-                                    <button type="submit" class="bg-sky-600 text-white py-3 rounded-xl font-bold hover:bg-sky-700 transition">TAYANGKAN BERITA</button>
-                                </div>
-                            </form>
-                            <div class="grid gap-4">
-                                ${state.news.map(n => `
-                                    <div class="flex justify-between items-center p-4 bg-white border rounded-2xl">
-                                        <div>
-                                            <h5 class="font-bold text-sm">${n.title}</h5>
-                                            <p class="text-[10px] text-slate-400">${n.date} | Oleh: ${n.author}</p>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <button onclick="editNews('${n.id}')" class="text-sky-600 text-sm hover:underline">Edit</button>
-                                            <button onclick="deleteNews('${n.id}')" class="text-rose-600 text-sm hover:underline">Hapus</button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -514,164 +510,71 @@
         function updateMajorsDropdown(schoolName, selectedMajor = "") {
             const dropdown = document.getElementById('major-select');
             const school = SCHOOLS.find(s => s.name === schoolName);
-            if (!school) {
-                dropdown.innerHTML = '<option value="">-- Pilih Jurusan --</option>';
-                return;
-            }
+            if (!school) { dropdown.innerHTML = '<option value="">-- Pilih Jurusan --</option>'; return; }
             dropdown.innerHTML = school.majors.map(m => `<option value="${m}" ${m === selectedMajor ? 'selected' : ''}>${m}</option>`).join('');
         }
 
-        function selectSchoolForDaftar(schoolName) {
-            state.selectedSchool = schoolName;
-            nav('daftar');
-        }
+        function selectSchoolForDaftar(schoolName) { state.selectedSchool = schoolName; nav('daftar'); }
 
         function handleDaftar(e) {
             e.preventDefault();
             const form = new FormData(e.target);
             const data = Object.fromEntries(form.entries());
-            
-            // Check Duplicate NIK/NISN
             const isDuplicate = state.registrations.some(r => (r.nik === data.nik || r.nisn === data.nisn) && r.id !== state.editData?.id);
-            if (isDuplicate) {
-                toast("Gagal! NIK atau NISN sudah pernah terdaftar.", "error");
-                return;
-            }
-
+            if (isDuplicate) { toast("Data Gagal Dikirim! NIK/NISN sudah terdaftar.", "error"); return; }
             if (state.editData) {
-                // Update
                 const idx = state.registrations.findIndex(r => r.id === state.editData.id);
                 state.registrations[idx] = { ...state.registrations[idx], ...data };
                 state.editData = null;
-                toast("Data pendaftar berhasil diperbarui!");
+                toast("Data berhasil diperbarui.");
             } else {
-                // Create
                 data.id = Date.now().toString();
                 data.status = 'Pending';
                 data.date = new Date().toISOString().split('T')[0];
                 state.registrations.push(data);
-                toast("Pendaftaran Berhasil! Data Anda telah masuk ke sistem.");
+                toast("Pendaftaran Berhasil Dikirim!");
             }
-            
             save();
             state.selectedSchool = null;
             nav('home');
-        }
-
-        function triggerEdit(id) {
-            state.editData = state.registrations.find(r => r.id === id);
-            nav('daftar');
-        }
-
-        function cancelEdit() {
-            state.editData = null;
-            nav('admin');
-        }
-
-        function deletePendaftar(id) {
-            if (!confirm("Hapus data pendaftar ini?")) return;
-            state.registrations = state.registrations.filter(r => r.id !== id);
-            save();
-            render();
-            toast("Data pendaftar dihapus.");
-        }
-
-        function updateStatus(id, status) {
-            const idx = state.registrations.findIndex(r => r.id === id);
-            state.registrations[idx].status = status;
-            save();
-            render();
-            toast(`Status diperbarui menjadi ${status}`);
         }
 
         function handleLogin(e) {
             e.preventDefault();
             const user = document.getElementById('l-user').value;
             const pass = document.getElementById('l-pass').value;
-
             if (user === 'mkkssmknabire' && pass === 'Master12345') {
                 state.user = { role: 'master', name: 'MKKS SMK Nabire' };
             } else if (pass === 'Admin12345') {
                 const school = SCHOOLS.find(s => s.id === user);
                 state.user = { role: 'admin', name: school.name };
-            } else {
-                toast("Gagal Login! Password salah.", "error");
-                return;
-            }
-            save();
-            nav('admin');
-            toast(`Selamat Datang, ${state.user.name}`);
+            } else { toast("Password Salah!", "error"); return; }
+            save(); nav('admin'); toast(`Selamat Datang, ${state.user.name}`);
         }
 
-        function logout() {
-            state.user = null;
-            save();
-            nav('home');
-            toast("Anda telah keluar.");
+        function logout() { state.user = null; save(); nav('home'); toast("Log out sukses."); }
+        function updateStatus(id, status) { 
+            const idx = state.registrations.findIndex(r => r.id === id);
+            state.registrations[idx].status = status; save(); render(); toast(`Status diperbarui ke ${status}`);
         }
-
-        function handlePostNews(e) {
-            e.preventDefault();
-            const title = document.getElementById('news-title').value;
-            const content = document.getElementById('news-content').value;
-            
-            const newPost = {
-                id: Date.now(),
-                title,
-                content,
-                author: state.user.name,
-                date: new Date().toISOString().split('T')[0]
-            };
-            
-            state.news.unshift(newPost);
-            save();
-            render();
-            toast("Berita ditayangkan!");
-        }
-
-        function deleteNews(id) {
-            state.news = state.news.filter(n => n.id != id);
-            save();
-            render();
-            toast("Berita dihapus.");
-        }
-
-        function editNews(id) {
-            const item = state.news.find(n => n.id == id);
-            const newTitle = prompt("Edit Judul:", item.title);
-            const newContent = prompt("Edit Isi Berita:", item.content);
-            if (newTitle && newContent) {
-                item.title = newTitle;
-                item.content = newContent;
-                save();
-                render();
-            }
-        }
+        function deletePendaftar(id) { if (!confirm("Hapus data?")) return; state.registrations = state.registrations.filter(r => r.id !== id); save(); render(); }
+        function triggerEdit(id) { state.editData = state.registrations.find(r => r.id === id); nav('daftar'); }
+        function cancelEdit() { state.editData = null; nav('admin'); }
 
         function searchTable(q) {
             const rows = document.querySelectorAll('#data-table tbody tr');
-            rows.forEach(r => {
-                r.style.display = r.innerText.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
-            });
+            rows.forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q.toLowerCase()) ? '' : 'none'; });
         }
 
         function exportExcel() {
-            const dataToExport = state.user.role === 'master' 
-                ? state.registrations 
-                : state.registrations.filter(r => r.smk === state.user.name);
-            
-            if (dataToExport.length === 0) {
-                toast("Tidak ada data untuk diekspor.", "error");
-                return;
-            }
-
+            const dataToExport = state.user.role === 'master' ? state.registrations : state.registrations.filter(r => r.smk === state.user.name);
+            if (!dataToExport.length) return toast("Data kosong.", "error");
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Pendaftar");
-            XLSX.writeFile(wb, `PPDB_SMK_NABIRE_${state.user.name.replace(/ /g,'_')}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Data_Pendaftar");
+            XLSX.writeFile(wb, `PPDB_NABIRE_${new Date().getFullYear()}.xlsx`);
         }
 
-        // --- INIT ---
         render();
     </script>
 </body>
